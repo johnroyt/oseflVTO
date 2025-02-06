@@ -30,6 +30,7 @@
             padding: 1rem;
             background: black;
             width: 100%;
+            z-index: 1001;
         }
 
         .logo {
@@ -47,61 +48,7 @@
             height: 100%;
         }
 
-        .bottom-sheet {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            background: white;
-            border-radius: 16px 16px 0 0;
-            box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
-            transition: transform 0.3s ease-out;
-            max-height: 80vh;
-            display: flex;
-            flex-direction: column;
-        }
-
-        .bottom-sheet.collapsed {
-            transform: translateY(calc(100% - 80px));
-        }
-
-        .sheet-header {
-            padding: 0.75rem 1rem;
-            border-bottom: 1px solid #eee;
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-        }
-
-        .sheet-handle {
-            width: 40px;
-            height: 4px;
-            background: #ddd;
-            border-radius: 2px;
-            margin: 0.5rem auto;
-        }
-
-        .current-frame {
-            flex: 1;
-        }
-
-        .frame-title {
-            font-weight: 600;
-            color: #333;
-            margin-bottom: 0.25rem;
-        }
-
-        .frame-specs {
-            font-size: 0.8rem;
-            color: #666;
-        }
-
-        .frame-selector {
-            overflow-y: auto;
-            padding: 1rem;
-            flex: 1;
-        }
-
+        /* Common styles for frame cards */
         .frame-card {
             display: grid;
             grid-template-columns: auto 1fr;
@@ -111,6 +58,7 @@
             border-radius: 6px;
             cursor: pointer;
             margin-bottom: 0.5rem;
+            background: white;
         }
 
         .frame-card.selected {
@@ -130,22 +78,97 @@
             gap: 0.25rem;
         }
 
-        @media (min-width: 768px) {
-            .bottom-sheet {
-                right: 0;
-                left: auto;
-                width: 320px;
-                border-radius: 16px 0 0 0;
-                max-height: calc(100vh - 72px);
-                transform: translateX(100%);
-            }
+        .frame-title {
+            font-weight: 600;
+            color: #333;
+        }
 
-            .bottom-sheet.collapsed {
-                transform: translateX(calc(100% - 80px));
-            }
+        .frame-specs {
+            font-size: 0.8rem;
+            color: #666;
+        }
 
-            .sheet-handle {
+        /* Mobile-specific styles */
+        .mobile-frame-tray {
+            display: none;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: white;
+            border-radius: 16px 16px 0 0;
+            box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+            z-index: 1000;
+            transition: transform 0.3s ease-in-out, height 0.3s ease-in-out;
+        }
+
+        .mobile-frame-tray.expanded {
+            height: 80vh;
+            transform: translateY(0);
+        }
+
+        .mobile-frame-tray.collapsed {
+            height: 80px;
+            transform: translateY(0);
+        }
+
+        .mobile-frame-tray.closing {
+            transform: translateY(calc(80vh - 80px));
+        }
+
+        .mobile-handle {
+            width: 40px;
+            height: 4px;
+            background: #ddd;
+            border-radius: 2px;
+            margin: 0.5rem auto;
+        }
+
+        .mobile-frame-content {
+            height: calc(100% - 80px);
+            overflow-y: auto;
+            padding: 1rem;
+            opacity: 0;
+            transition: opacity 0.2s ease-in-out;
+        }
+
+        .mobile-frame-tray.expanded .mobile-frame-content {
+            display: block;
+            opacity: 1;
+        }
+
+        /* Desktop-specific styles */
+        .desktop-frame-tray {
+            display: none;
+            position: fixed;
+            top: 72px;
+            right: 0;
+            width: 320px;
+            height: calc(100vh - 72px);
+            background: white;
+            border-left: 1px solid #eee;
+            box-shadow: -2px 0 10px rgba(0, 0, 0, 0.1);
+            z-index: 1000;
+            overflow-y: auto;
+            padding: 1rem;
+        }
+
+        /* Device-specific display logic */
+        @media (max-width: 767px) {
+            .mobile-frame-tray {
+                display: block;
+            }
+            .desktop-frame-tray {
                 display: none;
+            }
+        }
+
+        @media (min-width: 768px) {
+            .mobile-frame-tray {
+                display: none;
+            }
+            .desktop-frame-tray {
+                display: block;
             }
         }
     </style>
@@ -161,20 +184,20 @@
             <div id="fitmix-container"></div>
         </main>
 
-        <div class="bottom-sheet collapsed" id="frameSheet">
-            <div class="sheet-handle"></div>
-            <div class="sheet-header">
-                <div class="current-frame">
-                    <div class="frame-title" id="currentFrameName">Loading...</div>
-                    <div class="frame-specs" id="currentFrameSpecs"></div>
-                </div>
-                <button onclick="toggleSheet()" style="padding: 0.5rem; background: none; border: none; cursor: pointer;">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M19 9l-7 7-7-7"/>
-                    </svg>
-                </button>
+        <!-- Mobile Frame Tray -->
+        <div class="mobile-frame-tray collapsed" id="mobileFrameTray">
+            <div class="mobile-handle"></div>
+            <div class="current-frame" style="padding: 0.75rem 1rem;">
+                <div class="frame-title" id="mobileCurrentFrame">Loading...</div>
+                <div class="frame-specs" id="mobileCurrentSpecs"></div>
             </div>
-            <div class="frame-selector" id="frame-selector"></div>
+            <div class="mobile-frame-content" id="mobileFrameContent"></div>
+        </div>
+
+        <!-- Desktop Frame Tray -->
+        <div class="desktop-frame-tray" id="desktopFrameTray">
+            <h2 style="margin-bottom: 1rem; font-size: 1.25rem;">Available Frames</h2>
+            <div id="desktopFrameContent"></div>
         </div>
     </div>
 
@@ -185,81 +208,120 @@
             popupIntegration: false
         };
 
-        function createFrameCards() {
-            const selector = document.getElementById('frame-selector');
-            frames.forEach((frame, index) => {
-                const card = document.createElement('div');
-                card.className = 'frame-card' + (index === 0 ? ' selected' : '');
-                card.onclick = () => selectFrame(frame.id, frame.name, frame.color, frame.type, frame.measurements, index);
-                card.innerHTML = `
-                    <img class="frame-image" src="${frame.image}" alt="${frame.name}">
-                    <div class="frame-info">
-                        <span class="frame-title">${frame.name}</span>
-                        <span class="frame-specs">${frame.color} | ${frame.type}</span>
-                        <span class="frame-specs">${frame.measurements}</span>
-                    </div>
-                `;
-                selector.appendChild(card);
-            });
+        // Device detection
+        const isMobile = () => window.innerWidth < 768;
+
+        function createFrameCard(frame, index) {
+            const card = document.createElement('div');
+            card.className = 'frame-card' + (index === 0 ? ' selected' : '');
+            card.onclick = () => selectFrame(frame.id, frame.name, frame.color, frame.type, frame.measurements, index);
+            card.innerHTML = `
+                <img class="frame-image" src="${frame.image}" alt="${frame.name}">
+                <div class="frame-info">
+                    <span class="frame-title">${frame.name}</span>
+                    <span class="frame-specs">${frame.color} | ${frame.type}</span>
+                    <span class="frame-specs">${frame.measurements}</span>
+                </div>
+            `;
+            return card;
+        }
+
+        function populateFrames() {
+            const mobileContent = document.getElementById('mobileFrameContent');
+            const desktopContent = document.getElementById('desktopFrameContent');
             
-            // Set initial current frame info
+            // Clear existing content
+            mobileContent.innerHTML = '';
+            desktopContent.innerHTML = '';
+            
+            // Create frame cards for both mobile and desktop
+            frames.forEach((frame, index) => {
+                const mobileCard = createFrameCard(frame, index);
+                const desktopCard = createFrameCard(frame, index);
+                mobileContent.appendChild(mobileCard);
+                desktopContent.appendChild(desktopCard);
+            });
+
+            // Set initial frame
             if (frames.length > 0) {
                 updateCurrentFrame(frames[0].name, frames[0].color, frames[0].type, frames[0].measurements);
             }
         }
 
         function selectFrame(frameId, name, color, type, measurements, index) {
+            // Update selected state in both mobile and desktop
             document.querySelectorAll('.frame-card').forEach(card => card.classList.remove('selected'));
             document.querySelectorAll('.frame-card')[index].classList.add('selected');
+            document.querySelectorAll('.frame-card')[index + frames.length].classList.add('selected');
+
+            // Update FitMix
             fitmixInstance.setFrame(frameId);
+            
+            // Update frame info
             updateCurrentFrame(name, color, type, measurements);
+            
+            // Animate mobile tray closure if on mobile
+            if (isMobile()) {
+                const mobileTray = document.getElementById('mobileFrameTray');
+                mobileTray.classList.add('closing');
+                
+                // After animation completes, update classes
+                setTimeout(() => {
+                    mobileTray.classList.remove('expanded', 'closing');
+                    mobileTray.classList.add('collapsed');
+                }, 300);
+            }
         }
 
         function updateCurrentFrame(name, color, type, measurements) {
-            document.getElementById('currentFrameName').textContent = name;
-            document.getElementById('currentFrameSpecs').textContent = `${color} | ${type} | ${measurements}`;
+            const specs = `${color} | ${type} | ${measurements}`;
+            // Update mobile header
+            document.getElementById('mobileCurrentFrame').textContent = name;
+            document.getElementById('mobileCurrentSpecs').textContent = specs;
         }
 
-        function toggleSheet() {
-            const sheet = document.getElementById('frameSheet');
-            sheet.classList.toggle('collapsed');
-        }
-
-        // Handle drag to expand/collapse
+        // Mobile-specific touch handling
+        const mobileTray = document.getElementById('mobileFrameTray');
         let startY;
-        let startHeight;
-        const sheet = document.getElementById('frameSheet');
-        
-        sheet.addEventListener('touchstart', (e) => {
+
+        mobileTray.addEventListener('touchstart', (e) => {
             startY = e.touches[0].clientY;
-            startHeight = sheet.offsetHeight;
         });
 
-        sheet.addEventListener('touchmove', (e) => {
+        mobileTray.addEventListener('touchmove', (e) => {
             if (!startY) return;
             
             const currentY = e.touches[0].clientY;
             const diff = startY - currentY;
             
-            if (sheet.classList.contains('collapsed')) {
+            if (mobileTray.classList.contains('collapsed')) {
                 if (diff > 50) { // Drag up threshold
-                    sheet.classList.remove('collapsed');
+                    mobileTray.classList.remove('collapsed');
+                    mobileTray.classList.add('expanded');
                 }
             } else {
                 if (diff < -50) { // Drag down threshold
-                    sheet.classList.add('collapsed');
+                    mobileTray.classList.remove('expanded');
+                    mobileTray.classList.add('collapsed');
                 }
             }
         });
 
-        sheet.addEventListener('touchend', () => {
+        mobileTray.addEventListener('touchend', () => {
             startY = null;
         });
 
+        // Click handler for mobile tray header
+        mobileTray.querySelector('.current-frame').addEventListener('click', () => {
+            mobileTray.classList.toggle('collapsed');
+            mobileTray.classList.toggle('expanded');
+        });
+
+        // Initialize
         window.onload = function() {
             window.fitmixInstance = FitMix.createWidget('fitmix-container', params, function() {
                 console.log('FitmixWidget creation complete!');
-                createFrameCards();
+                populateFrames();
                 fitmixInstance.startVto('live');
             });
         }
