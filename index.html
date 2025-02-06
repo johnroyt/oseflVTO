@@ -3,6 +3,7 @@
 <head>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="//vto-advanced-integration-api.fittingbox.com/index.js"></script>
+    <script src="frames.js"></script>
     <style>
         * {
             margin: 0;
@@ -13,21 +14,20 @@
         body {
             font-family: system-ui, -apple-system, sans-serif;
             background: #f5f5f5;
+            overflow: hidden;
         }
 
         .app-container {
             height: 100vh;
-            display: grid;
-            grid-template-rows: auto 1fr;
-            max-width: 100%;
-            gap: 0;
+            display: flex;
+            flex-direction: column;
         }
 
         .header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 1rem 2rem;
+            padding: 1rem;
             background: black;
             width: 100%;
         }
@@ -37,24 +37,69 @@
             width: auto;
         }
 
-        .main-content {
-            display: grid;
-            grid-template-columns: 1fr 320px;
-            height: 100%;
+        .viewer-container {
+            flex-grow: 1;
+            position: relative;
         }
 
         #fitmix-container {
+            width: 100%;
+            height: 100%;
+        }
+
+        .bottom-sheet {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
             background: white;
+            border-radius: 16px 16px 0 0;
+            box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease-out;
+            max-height: 80vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .bottom-sheet.collapsed {
+            transform: translateY(calc(100% - 80px));
+        }
+
+        .sheet-header {
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .sheet-handle {
+            width: 40px;
+            height: 4px;
+            background: #ddd;
+            border-radius: 2px;
+            margin: 0.5rem auto;
+        }
+
+        .current-frame {
+            flex: 1;
+        }
+
+        .frame-title {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 0.25rem;
+        }
+
+        .frame-specs {
+            font-size: 0.8rem;
+            color: #666;
         }
 
         .frame-selector {
-            display: flex;
-            flex-direction: column;
-            gap: 0.5rem;
-            padding: 1rem;
-            background: white;
-            border-left: 1px solid #eee;
             overflow-y: auto;
+            padding: 1rem;
+            flex: 1;
         }
 
         .frame-card {
@@ -65,11 +110,7 @@
             border: 2px solid transparent;
             border-radius: 6px;
             cursor: pointer;
-            transition: all 0.2s;
-        }
-
-        .frame-card:hover {
-            background: #f5f5f5;
+            margin-bottom: 0.5rem;
         }
 
         .frame-card.selected {
@@ -89,30 +130,22 @@
             gap: 0.25rem;
         }
 
-        .frame-title {
-            font-weight: 600;
-            color: #333;
-        }
-
-        .frame-specs {
-            font-size: 0.8rem;
-            color: #666;
-        }
-
-        .frame-measurements {
-            font-size: 0.75rem;
-            color: #888;
-        }
-
-        @media (max-width: 768px) {
-            .main-content {
-                grid-template-columns: 1fr;
-                grid-template-rows: 1fr auto;
+        @media (min-width: 768px) {
+            .bottom-sheet {
+                right: 0;
+                left: auto;
+                width: 320px;
+                border-radius: 16px 0 0 0;
+                max-height: calc(100vh - 72px);
+                transform: translateX(100%);
             }
 
-            .frame-selector {
-                border-left: none;
-                border-top: 1px solid #eee;
+            .bottom-sheet.collapsed {
+                transform: translateX(calc(100% - 80px));
+            }
+
+            .sheet-handle {
+                display: none;
             }
         }
     </style>
@@ -124,339 +157,31 @@
             <img src="https://www.championsforsight.org/static/assets/img/logo/Powered_by_OSELF-white.png" alt="Powered by OneSight EssilorLuxottica Foundation" class="logo">
         </header>
         
-        <main class="main-content">
+        <main class="viewer-container">
             <div id="fitmix-container"></div>
-            <div class="frame-selector" id="frame-selector"></div>
         </main>
+
+        <div class="bottom-sheet collapsed" id="frameSheet">
+            <div class="sheet-handle"></div>
+            <div class="sheet-header">
+                <div class="current-frame">
+                    <div class="frame-title" id="currentFrameName">Loading...</div>
+                    <div class="frame-specs" id="currentFrameSpecs"></div>
+                </div>
+                <button onclick="toggleSheet()" style="padding: 0.5rem; background: none; border: none; cursor: pointer;">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M19 9l-7 7-7-7"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="frame-selector" id="frame-selector"></div>
+        </div>
     </div>
 
     <script>
-        const frames = [
-        {
-     "id": "8053672909258",
-     "name": "OS6012",
-     "color": "Black",
-     "type": "ZYL",
-     "measurements": "45-17-130",
-     "image": "https://evfportal.s3.amazonaws.com/FrameImages/OSELF2024/OS6012-BLK+(2024).jpg"
-   },
-   {
-     "id": "0888392486523",
-     "name": "OS6032",
-     "color": "Black",
-     "type": "ZYL",
-     "measurements": "45-17-130",
-     "image": "https://evfportal.s3.amazonaws.com/FrameImages/OSELF2024/OS6032-BLK+(2024).jpg"
-   },
-   {
-     "id": "8056597233958",
-     "name": "OS6032",
-     "color": "Gold",
-     "type": "ZYL",
-     "measurements": "45-17-130",
-     "image": "https://evfportal.s3.amazonaws.com/FrameImages/OSELF2024/OS6032-GLD+(2024).jpg"
-   },
-   {
-     "id": "8053672909258",
-     "name": "OS6038",
-     "color": "Navy",
-     "type": "ZYL",
-     "measurements": "45-17-130",
-     "image": "https://evfportal.s3.amazonaws.com/FrameImages/OSELF2024/OS6038-NAV+(2024).jpg"
-   },
-   {
-     "id": "0888392486523",
-     "name": "OS6038",
-     "color": "Tortoise",
-     "type": "ZYL",
-     "measurements": "45-17-130",
-     "image": "https://evfportal.s3.amazonaws.com/FrameImages/OSELF2024/OS6038-TOR+(2024).jpg"
-   },
-   {
-     "id": "8056597233958",
-     "name": "OS6062",
-     "color": "Purple",
-     "type": "ZYL",
-     "measurements": "45-17-130",
-     "image": "https://evfportal.s3.amazonaws.com/FrameImages/OSELF2024/OS6062-PRP+(2024).jpg"
-   },
-   {
-     "id": "8053672909258",
-     "name": "OS6062",
-     "color": "Tortoise",
-     "type": "ZYL",
-     "measurements": "45-17-130",
-     "image": "https://evfportal.s3.amazonaws.com/FrameImages/OSELF2024/OS6062-TOR+(2024).jpg"
-   },
-   {
-     "id": "0888392486523",
-     "name": "OS6063",
-     "color": "Black",
-     "type": "ZYL",
-     "measurements": "45-17-130",
-     "image": "https://evfportal.s3.amazonaws.com/FrameImages/OSELF2024/OS6063-BLK+(2024).jpg"
-   },
-   {
-     "id": "8056597233958",
-     "name": "OS6063",
-     "color": "Purple",
-     "type": "ZYL",
-     "measurements": "45-17-130",
-     "image": "https://evfportal.s3.amazonaws.com/FrameImages/OSELF2024/OS6063-PRP+(2024).jpg"
-   },
-   {
-     "id": "8053672909258",
-     "name": "OS6066",
-     "color": "Crystal",
-     "type": "ZYL",
-     "measurements": "45-17-130",
-     "image": "https://evfportal.s3.amazonaws.com/FrameImages/OSELF2024/OS6066-CRY+(2024).jpg"
-   },
-   {
-     "id": "0888392486523",
-     "name": "OS6071",
-     "color": "Black",
-     "type": "ZYL",
-     "measurements": "45-17-130",
-     "image": "https://evfportal.s3.amazonaws.com/FrameImages/OSELF2024/OS6071-BLK+(2024).jpg"
-   },
-   {
-     "id": "8056597233958",
-     "name": "OS6089",
-     "color": "Black",
-     "type": "ZYL",
-     "measurements": "45-17-130",
-     "image": "https://evfportal.s3.amazonaws.com/FrameImages/OSELF2024/OS6089-BLK+(2024).jpg"
-   },
-   {
-     "id": "8053672909258",
-     "name": "OS6089",
-     "color": "Red",
-     "type": "ZYL",
-     "measurements": "45-17-130",
-     "image": "https://evfportal.s3.amazonaws.com/FrameImages/OSELF2024/OS6089-RED+(2024).jpg"
-   },
-   {
-     "id": "0888392486523",
-     "name": "OS7009",
-     "color": "Gunmetal",
-     "type": "METAL",
-     "measurements": "45-17-130",
-     "image": "https://evfportal.s3.amazonaws.com/FrameImages/OSELF2024/OS7009-GUN+(2024).jpg"
-   },
-   {
-     "id": "8056597233958",
-     "name": "OS7012",
-     "color": "Gunmetal",
-     "type": "METAL",
-     "measurements": "45-17-130",
-     "image": "https://evfportal.s3.amazonaws.com/FrameImages/OSELF2024/OS7012-GUN+(2024).jpg"
-   },
-   {
-     "id": "8053672909258",
-     "name": "OS7017",
-     "color": "Black",
-     "type": "ZYL",
-     "measurements": "45-17-130",
-     "image": "https://evfportal.s3.amazonaws.com/FrameImages/OSELF2024/OS7017-BLK+(2024).JPG"
-   },
-   {
-     "id": "0888392486523",
-     "name": "OS7017",
-     "color": "Crystal",
-     "type": "ZYL",
-     "measurements": "45-17-130",
-     "image": "https://evfportal.s3.amazonaws.com/FrameImages/OSELF2024/OS7017-CRY+(2024).jpg"
-   },
-   {
-     "id": "8056597233958",
-     "name": "OS7044",
-     "color": "Black",
-     "type": "ZYL",
-     "measurements": "45-17-130",
-     "image": "https://evfportal.s3.amazonaws.com/FrameImages/OSELF2024/OS7044-BLK+(2024).jpg"
-   },
-   {
-     "id": "8053672909258",
-     "name": "OS7056",
-     "color": "Black",
-     "type": "ZYL",
-     "measurements": "45-17-130",
-     "image": "https://evfportal.s3.amazonaws.com/FrameImages/OSELF2024/OS7056-BLK+(2024).jpg"
-   },
-   {
-     "id": "0888392486523",
-     "name": "OS7057",
-     "color": "Black",
-     "type": "ZYL",
-     "measurements": "45-17-130",
-     "image": "https://evfportal.s3.amazonaws.com/FrameImages/OSELF2024/OS7057-BLK+(2024).jpg"
-   },
-   {
-     "id": "8056597233958",
-     "name": "OS7059",
-     "color": "Crystal",
-     "type": "ZYL",
-     "measurements": "45-17-130",
-     "image": "https://evfportal.s3.amazonaws.com/FrameImages/OSELF2024/OS7059-CRY+(2024).jpg"
-   },
-   {
-     "id": "8053672909258",
-     "name": "OS7059",
-     "color": "Grey",
-     "type": "ZYL",
-     "measurements": "45-17-130",
-     "image": "https://evfportal.s3.amazonaws.com/FrameImages/OSELF2024/OS7059-GRY+(2024).jpg"
-   },
-   {
-     "id": "0888392486523",
-     "name": "OS7059",
-     "color": "Navy",
-     "type": "ZYL",
-     "measurements": "45-17-130",
-     "image": "https://evfportal.s3.amazonaws.com/FrameImages/OSELF2024/OS7059-NAV+(2024).jpg"
-   },
-   {
-     "id": "8056597233958",
-     "name": "OS7060",
-     "color": "Black",
-     "type": "ZYL",
-     "measurements": "45-17-130",
-     "image": "https://evfportal.s3.amazonaws.com/FrameImages/OSELF2024/OS7060-BLK+(2024).jpg"
-   },
-   {
-     "id": "8053672909258",
-     "name": "OS7060",
-     "color": "Tortoise",
-     "type": "ZYL",
-     "measurements": "45-17-130",
-     "image": "https://evfportal.s3.amazonaws.com/FrameImages/OSELF2024/OS7060-TOR+(2024).jpg"
-   },
-   {
-     "id": "0888392486523",
-     "name": "OS7062",
-     "color": "Navy",
-     "type": "ZYL",
-     "measurements": "45-17-130",
-     "image": "https://evfportal.s3.amazonaws.com/FrameImages/OSELF2024/OS7062-NAV+(2024).jpg"
-   },
-   {
-     "id": "8056597233958",
-     "name": "OS7080",
-     "color": "Navy",
-     "type": "ZYL",
-     "measurements": "45-17-130",
-     "image": "https://evfportal.s3.amazonaws.com/FrameImages/OSELF2024/OS7080-NAV+(2024).jpg"
-   },
-   {
-     "id": "8053672909258",
-     "name": "OS7081",
-     "color": "Black Fade",
-     "type": "ZYL",
-     "measurements": "45-17-130",
-     "image": "https://evfportal.s3.amazonaws.com/FrameImages/OSELF2024/OS7081-BLF+(2024).jpg"
-   },
-   {
-     "id": "0888392486523",
-     "name": "OS7081",
-     "color": "Black",
-     "type": "ZYL",
-     "measurements": "45-17-130",
-     "image": "https://evfportal.s3.amazonaws.com/FrameImages/OSELF2024/OS7081-BLK+(2024).jpg"
-   },
-   {
-     "id": "8056597233958",
-     "name": "OS7082",
-     "color": "Black",
-     "type": "ZYL",
-     "measurements": "45-17-130",
-     "image": "https://evfportal.s3.amazonaws.com/FrameImages/OSELF2024/OS7082-BLK+(2024).jpg"
-   },
-   {
-     "id": "8053672909258",
-     "name": "OS7083",
-     "color": "Black",
-     "type": "ZYL",
-     "measurements": "45-17-130",
-     "image": "https://evfportal.s3.amazonaws.com/FrameImages/OSELF2024/OS7083-BLK+(2024).jpg"
-   },
-   {
-     "id": "0888392486523",
-     "name": "OS7083",
-     "color": "Pink",
-     "type": "ZYL",
-     "measurements": "45-17-130",
-     "image": "https://evfportal.s3.amazonaws.com/FrameImages/OSELF2024/OS7083-PNK+(2024).jpg"
-   },
-   {
-     "id": "8056597233958",
-     "name": "OS7083",
-     "color": "Tortoise",
-     "type": "ZYL",
-     "measurements": "45-17-130",
-     "image": "https://evfportal.s3.amazonaws.com/FrameImages/OSELF2024/OS7083-TOR+(2024).jpg"
-   },
-   {
-     "id": "8053672909258",
-     "name": "OS7084",
-     "color": "Black",
-     "type": "ZYL",
-     "measurements": "45-17-130",
-     "image": "https://evfportal.s3.amazonaws.com/FrameImages/OSELF2024/OS7084-BLK+(2024).jpg"
-   },
-   {
-     "id": "0888392486523",
-     "name": "OS7084",
-     "color": "Gold",
-     "type": "ZYL",
-     "measurements": "45-17-130",
-     "image": "https://evfportal.s3.amazonaws.com/FrameImages/OSELF2024/OS7084-GLD+(2024).jpg"
-   },
-   {
-     "id": "8056597233958",
-     "name": "OS7089",
-     "color": "Black",
-     "type": "ZYL",
-     "measurements": "45-17-130",
-     "image": "https://evfportal.s3.amazonaws.com/FrameImages/OSELF2024/OS7089-BLK+(2024).jpg"
-   },
-   {
-     "id": "8053672909258",
-     "name": "OS8008",
-     "color": "Gunmetal",
-     "type": "METAL",
-     "measurements": "44-19-130",
-     "image": "https://evfportal.s3.amazonaws.com/FrameImages/OSELF2024/OS8008-GUN+(2024).jpg"
-   },
-   {
-     "id": "0888392486523",
-     "name": "OS8010",
-     "color": "Blue",
-     "type": "METAL",
-     "measurements": "45-19-125",
-     "image": "https://evfportal.s3.amazonaws.com/FrameImages/OSELF2024/OS8010-BLU+(2024).jpg"
-   },
-   {
-     "id": "8056597233958",
-     "name": "OS8010",
-     "color": "Purple",
-     "type": "METAL",
-     "measurements": "45-19-125",
-     "image": "https://evfportal.s3.amazonaws.com/FrameImages/OSELF2024/OS8010-PRP+(2024).jpg"
-   },
-   {
-     "id": "8053672909258",
-     "name": "OS8018",
-     "color": "Pink",
-     "type": "ZYL",
-     "measurements": "45-16-130",
-     "image": "https://evfportal.s3.amazonaws.com/FrameImages/OSELF2024/OS8018-PNK+(2024).jpg"
-   }
-        ];
-
         const params = {
             apiKey: 'TBVAcXitApiZPVH791yxdHbAc8AKzBwtCnjtv6Xn',
-            frame: frames[0].id,
+            frame: '8053672909258',
             popupIntegration: false
         };
 
@@ -465,24 +190,71 @@
             frames.forEach((frame, index) => {
                 const card = document.createElement('div');
                 card.className = 'frame-card' + (index === 0 ? ' selected' : '');
-                card.onclick = () => selectFrame(frame.id, index);
+                card.onclick = () => selectFrame(frame.id, frame.name, frame.color, frame.type, frame.measurements, index);
                 card.innerHTML = `
                     <img class="frame-image" src="${frame.image}" alt="${frame.name}">
                     <div class="frame-info">
                         <span class="frame-title">${frame.name}</span>
                         <span class="frame-specs">${frame.color} | ${frame.type}</span>
-                        <span class="frame-measurements">${frame.measurements}</span>
+                        <span class="frame-specs">${frame.measurements}</span>
                     </div>
                 `;
                 selector.appendChild(card);
             });
+            
+            // Set initial current frame info
+            if (frames.length > 0) {
+                updateCurrentFrame(frames[0].name, frames[0].color, frames[0].type, frames[0].measurements);
+            }
         }
 
-        function selectFrame(frameId, index) {
+        function selectFrame(frameId, name, color, type, measurements, index) {
             document.querySelectorAll('.frame-card').forEach(card => card.classList.remove('selected'));
             document.querySelectorAll('.frame-card')[index].classList.add('selected');
             fitmixInstance.setFrame(frameId);
+            updateCurrentFrame(name, color, type, measurements);
         }
+
+        function updateCurrentFrame(name, color, type, measurements) {
+            document.getElementById('currentFrameName').textContent = name;
+            document.getElementById('currentFrameSpecs').textContent = `${color} | ${type} | ${measurements}`;
+        }
+
+        function toggleSheet() {
+            const sheet = document.getElementById('frameSheet');
+            sheet.classList.toggle('collapsed');
+        }
+
+        // Handle drag to expand/collapse
+        let startY;
+        let startHeight;
+        const sheet = document.getElementById('frameSheet');
+        
+        sheet.addEventListener('touchstart', (e) => {
+            startY = e.touches[0].clientY;
+            startHeight = sheet.offsetHeight;
+        });
+
+        sheet.addEventListener('touchmove', (e) => {
+            if (!startY) return;
+            
+            const currentY = e.touches[0].clientY;
+            const diff = startY - currentY;
+            
+            if (sheet.classList.contains('collapsed')) {
+                if (diff > 50) { // Drag up threshold
+                    sheet.classList.remove('collapsed');
+                }
+            } else {
+                if (diff < -50) { // Drag down threshold
+                    sheet.classList.add('collapsed');
+                }
+            }
+        });
+
+        sheet.addEventListener('touchend', () => {
+            startY = null;
+        });
 
         window.onload = function() {
             window.fitmixInstance = FitMix.createWidget('fitmix-container', params, function() {
