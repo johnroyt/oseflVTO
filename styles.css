@@ -67,3 +67,23 @@
     height: 40px;
     width: auto;
   }
+
+  @media (max-width: 768px) {
+    #fitmix-container {
+        height: 40vh; /* Adjust to fit within the screen */
+    }
+    
+    .frame-carousel {
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        white-space: nowrap;
+    }
+
+    .logo-container {
+        padding: 0.5rem;
+    }
+
+    .logo {
+        height: 30px;
+    }
+}
