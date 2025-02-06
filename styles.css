@@ -70,7 +70,7 @@
 
   @media (max-width: 768px) {
     #fitmix-container {
-        height: 40vh; /* Adjust to fit within the screen */
+        height: 30vh; /* Adjust to fit within the screen */
     }
     
     .frame-carousel {
