@@ -237,29 +237,24 @@
         }
 
         function selectFrame(frameId, name, color, type, measurements, index) {
-            // Update selected state in both mobile and desktop
-            document.querySelectorAll('.frame-card').forEach(card => card.classList.remove('selected'));
-            document.querySelectorAll('.frame-card')[index].classList.add('selected');
-            document.querySelectorAll('.frame-card')[index + frames.length].classList.add('selected');
+    // Update selected state in both mobile and desktop
+    document.querySelectorAll('.frame-card').forEach(card => card.classList.remove('selected'));
+    document.querySelectorAll('.frame-card')[index].classList.add('selected');
+    document.querySelectorAll('.frame-card')[index + frames.length].classList.add('selected');
 
-            // Update FitMix
-            fitmixInstance.setFrame(frameId);
-            
-            // Update frame info
-            updateCurrentFrame(name, color, type, measurements);
-            
-            // Animate mobile tray closure if on mobile
-            if (isMobile()) {
-                const mobileTray = document.getElementById('mobileFrameTray');
-                mobileTray.classList.add('closing');
-                
-                // After animation completes, update classes
-                setTimeout(() => {
-                    mobileTray.classList.remove('expanded', 'closing');
-                    mobileTray.classList.add('collapsed');
-                }, 300);
-            }
-        }
+    // Update FitMix
+    fitmixInstance.setFrame(frameId);
+    
+    // Update frame info
+    updateCurrentFrame(name, color, type, measurements);
+    
+    // Simplified animation for mobile tray
+    if (isMobile()) {
+        const mobileTray = document.getElementById('mobileFrameTray');
+        mobileTray.classList.remove('expanded');
+        mobileTray.classList.add('collapsed');
+    }
+}
 
         function updateCurrentFrame(name, color, type, measurements) {
             const specs = `${color} | ${type} | ${measurements}`;
