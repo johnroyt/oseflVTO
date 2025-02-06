@@ -4,6 +4,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="//vto-advanced-integration-api.fittingbox.com/index.js"></script>
     <script src="frames.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         * {
             margin: 0;
@@ -48,10 +49,46 @@
             height: 100%;
         }
 
-        /* Common styles for frame cards */
+        /* Active frame favorite button */
+        .active-frame-controls {
+            position: fixed;
+            top: 90px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.8);
+            padding: 0.75rem 1.5rem;
+            border-radius: 2rem;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: white;
+        }
+
+        .active-frame-name {
+            margin-right: 0.5rem;
+            font-size: 0.9rem;
+        }
+
+        .favorite-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 0.5rem;
+            color: white;
+            font-size: 1.25rem;
+            transition: color 0.2s ease;
+        }
+
+        .favorite-btn:hover,
+        .favorite-btn.active {
+            color: #ff4b4b;
+        }
+
+        /* Frame cards */
         .frame-card {
             display: grid;
-            grid-template-columns: auto 1fr;
+            grid-template-columns: auto 1fr auto;
             gap: 1rem;
             padding: 0.75rem;
             border: 2px solid transparent;
@@ -59,6 +96,7 @@
             cursor: pointer;
             margin-bottom: 0.5rem;
             background: white;
+            position: relative;
         }
 
         .frame-card.selected {
@@ -88,7 +126,60 @@
             color: #666;
         }
 
-        /* Mobile-specific styles */
+        .card-favorite-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 0.5rem;
+            color: #666;
+            transition: color 0.2s ease;
+            z-index: 2;
+        }
+
+        .card-favorite-btn:hover,
+        .card-favorite-btn.active {
+            color: #ff4b4b;
+        }
+
+        /* Favorites navigation */
+        .favorites-nav {
+            display: none;
+            position: fixed;
+            bottom: 150px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.8);
+            padding: 0.75rem;
+            border-radius: 2rem;
+            z-index: 1000;
+        }
+
+        .favorites-nav.visible {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        .nav-btn {
+            background: none;
+            border: none;
+            color: white;
+            cursor: pointer;
+            padding: 0.5rem;
+            font-size: 1.25rem;
+        }
+
+        .nav-btn:disabled {
+            color: #666;
+            cursor: not-allowed;
+        }
+
+        .favorites-counter {
+            color: white;
+            font-size: 0.875rem;
+        }
+
+        /* Mobile frame tray */
         .mobile-frame-tray {
             display: none;
             position: fixed;
@@ -108,7 +199,7 @@
         }
 
         .mobile-frame-tray.collapsed {
-            height: 80px;
+            height: 130px;
             transform: translateY(0);
         }
 
@@ -124,8 +215,42 @@
             margin: 0.5rem auto;
         }
 
+        .tray-header {
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid #eee;
+        }
+
+        .filter-toggle {
+            display: flex;
+            margin-top: 0.5rem;
+        }
+
+        .filter-btn {
+            flex: 1;
+            padding: 0.5rem;
+            border: 1px solid #ddd;
+            background: white;
+            color: #666;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .filter-btn:first-child {
+            border-radius: 4px 0 0 4px;
+        }
+
+        .filter-btn:last-child {
+            border-radius: 0 4px 4px 0;
+        }
+
+        .filter-btn.active {
+            background: #009FE3;
+            color: white;
+            border-color: #009FE3;
+        }
+
         .mobile-frame-content {
-            height: calc(100% - 80px);
+            height: calc(100% - 140px);
             overflow-y: auto;
             padding: 1rem;
             opacity: 0;
@@ -137,7 +262,7 @@
             opacity: 1;
         }
 
-        /* Desktop-specific styles */
+        /* Desktop frame tray */
         .desktop-frame-tray {
             display: none;
             position: fixed;
@@ -150,6 +275,16 @@
             box-shadow: -2px 0 10px rgba(0, 0, 0, 0.1);
             z-index: 1000;
             overflow-y: auto;
+        }
+
+        .desktop-frame-tray .tray-header {
+            position: sticky;
+            top: 0;
+            background: white;
+            z-index: 1;
+        }
+
+        .desktop-frame-content {
             padding: 1rem;
         }
 
@@ -182,22 +317,51 @@
         
         <main class="viewer-container">
             <div id="fitmix-container"></div>
+            
+            <!-- Active frame controls -->
+            <div class="active-frame-controls">
+                <span class="active-frame-name" id="activeFrameName">Loading...</span>
+                <button class="favorite-btn" id="activeFrameFavorite">
+                    <i class="fas fa-heart"></i>
+                </button>
+            </div>
+
+            <!-- Favorites Navigation -->
+            <div class="favorites-nav" id="favoritesNav">
+                <button class="nav-btn" id="prevFavorite">
+                    <i class="fas fa-chevron-left"></i>
+                </button>
+                <span class="favorites-counter" id="favoritesCounter">0/0</span>
+                <button class="nav-btn" id="nextFavorite">
+                    <i class="fas fa-chevron-right"></i>
+                </button>
+            </div>
         </main>
 
         <!-- Mobile Frame Tray -->
         <div class="mobile-frame-tray collapsed" id="mobileFrameTray">
             <div class="mobile-handle"></div>
-            <div class="current-frame" style="padding: 0.75rem 1rem;">
+            <div class="tray-header">
                 <div class="frame-title" id="mobileCurrentFrame">Loading...</div>
                 <div class="frame-specs" id="mobileCurrentSpecs"></div>
+                <div class="filter-toggle">
+                    <button class="filter-btn active" data-filter="all">All Frames</button>
+                    <button class="filter-btn" data-filter="favorites">Favorites</button>
+                </div>
             </div>
             <div class="mobile-frame-content" id="mobileFrameContent"></div>
         </div>
 
         <!-- Desktop Frame Tray -->
         <div class="desktop-frame-tray" id="desktopFrameTray">
-            <h2 style="margin-bottom: 1rem; font-size: 1.25rem;">Available Frames</h2>
-            <div id="desktopFrameContent"></div>
+            <div class="tray-header">
+                <div class="frame-title">Available Frames</div>
+                <div class="filter-toggle">
+                    <button class="filter-btn active" data-filter="all">All Frames</button>
+                    <button class="filter-btn" data-filter="favorites">Favorites</button>
+                </div>
+            </div>
+            <div class="desktop-frame-content" id="desktopFrameContent"></div>
         </div>
     </div>
 
@@ -211,6 +375,90 @@
         // Device detection
         const isMobile = () => window.innerWidth < 768;
 
+        // Favorites management
+        let favorites = new Set(JSON.parse(localStorage.getItem('framesFavorites') || '[]'));
+        let currentFavoriteIndex = 0;
+        let currentFilter = 'all';
+        let currentFrame = null;
+
+        function updateActiveFavoriteButton() {
+            const activeFrameFavorite = document.getElementById('activeFrameFavorite');
+            if (currentFrame) {
+                activeFrameFavorite.classList.toggle('active', favorites.has(currentFrame.id));
+            }
+        }
+
+        function toggleCurrentFavorite(event) {
+            if (!currentFrame) return;
+            
+            event.stopPropagation();
+            toggleFavorite(currentFrame.id, event);
+            updateActiveFavoriteButton();
+        }
+
+        function toggleFavorite(frameId, event) {
+            event.stopPropagation();
+            
+            if (favorites.has(frameId)) {
+                favorites.delete(frameId);
+            } else {
+                favorites.add(frameId);
+            }
+
+            // Update UI
+            updateFavoriteButtons(frameId);
+            updateFavoritesNav();
+            
+            // If in favorites view, potentially hide the card
+            if (currentFilter === 'favorites') {
+                populateFrames();
+            }
+            
+            // Save to localStorage
+            localStorage.setItem('framesFavorites', JSON.stringify(Array.from(favorites)));
+        }
+
+        function updateFavoriteButtons(frameId) {
+            document.querySelectorAll(`.card-favorite-btn[data-frame="${frameId}"]`).forEach(btn => {
+                btn.classList.toggle('active', favorites.has(frameId));
+            });
+        }
+
+        function updateFavoritesNav() {
+            const nav = document.getElementById('favoritesNav');
+            const counter = document.getElementById('favoritesCounter');
+            const prevBtn = document.getElementById('prevFavorite');
+            const nextBtn = document.getElementById('nextFavorite');
+            
+            const favoriteFrames = frames.filter(frame => favorites.has(frame.id));
+            
+            if (favoriteFrames.length > 0) {
+                nav.classList.add('visible');
+                counter.textContent = `${currentFavoriteIndex + 1}/${favoriteFrames.length}`;
+                
+                prevBtn.disabled = currentFavoriteIndex === 0;
+                nextBtn.disabled = currentFavoriteIndex === favoriteFrames.length - 1;
+            } else {
+                nav.classList.remove('visible');
+            }
+        }
+
+        function navigateFavorites(direction) {
+            const favoriteFrames = frames.filter(frame => favorites.has(frame.id));
+            if (favoriteFrames.length === 0) return;
+            
+            currentFavoriteIndex = Math.max(0, Math.min(
+                currentFavoriteIndex + direction,
+                favoriteFrames.length - 1
+            ));
+            
+            const frame = favoriteFrames[currentFavoriteIndex];
+            selectFrame(frame.id, frame.name, frame.color, frame.type, frame.measurements, 
+                frames.findIndex(f => f.id === frame.id));
+            
+            updateFavoritesNav();
+        }
+
         function createFrameCard(frame, index) {
             const card = document.createElement('div');
             card.className = 'frame-card' + (index === 0 ? ' selected' : '');
@@ -222,6 +470,11 @@
                     <span class="frame-specs">${frame.color} | ${frame.type}</span>
                     <span class="frame-specs">${frame.measurements}</span>
                 </div>
+                <button class="card-favorite-btn ${favorites.has(frame.id) ? 'active' : ''}" 
+                        data-frame="${frame.id}"
+                        onclick="toggleFavorite('${frame.id}', event)">
+                    <i class="fas fa-heart"></i>
+                </button>
             `;
             return card;
         }
@@ -234,25 +487,44 @@
             mobileContent.innerHTML = '';
             desktopContent.innerHTML = '';
             
+            // Filter frames if needed
+            let displayFrames = frames;
+            if (currentFilter === 'favorites') {
+                displayFrames = frames.filter(frame => favorites.has(frame.id));
+            }
+            
             // Create frame cards for both mobile and desktop
-            frames.forEach((frame, index) => {
+            displayFrames.forEach((frame, index) => {
                 const mobileCard = createFrameCard(frame, index);
                 const desktopCard = createFrameCard(frame, index);
                 mobileContent.appendChild(mobileCard);
                 desktopContent.appendChild(desktopCard);
             });
 
-            // Set initial frame
-            if (frames.length > 0) {
-                updateCurrentFrame(frames[0].name, frames[0].color, frames[0].type, frames[0].measurements);
+            // Set initial frame if no frames are displayed
+            if (displayFrames.length > 0 && !currentFrame) {
+                updateCurrentFrame(displayFrames[0].name, displayFrames[0].color, displayFrames[0].type, displayFrames[0].measurements);
             }
         }
 
         function selectFrame(frameId, name, color, type, measurements, index) {
+            // Store current frame info
+            currentFrame = {
+                id: frameId,
+                name: name,
+                color: color,
+                type: type,
+                measurements: measurements,
+                index: index
+            };
+            
             // Update selected state in both mobile and desktop
             document.querySelectorAll('.frame-card').forEach(card => card.classList.remove('selected'));
-            document.querySelectorAll('.frame-card')[index].classList.add('selected');
-            document.querySelectorAll('.frame-card')[index + frames.length].classList.add('selected');
+            const cards = document.querySelectorAll('.frame-card');
+            const mobileCard = cards[index];
+            const desktopCard = cards[index + frames.length];
+            if (mobileCard) mobileCard.classList.add('selected');
+            if (desktopCard) desktopCard.classList.add('selected');
 
             // Update FitMix
             fitmixInstance.setFrame(frameId);
@@ -260,12 +532,14 @@
             // Update frame info
             updateCurrentFrame(name, color, type, measurements);
             
+            // Update active favorite button
+            updateActiveFavoriteButton();
+            
             // Animate mobile tray closure if on mobile
             if (isMobile()) {
                 const mobileTray = document.getElementById('mobileFrameTray');
                 mobileTray.classList.add('closing');
                 
-                // After animation completes, update classes
                 setTimeout(() => {
                     mobileTray.classList.remove('expanded', 'closing');
                     mobileTray.classList.add('collapsed');
@@ -278,6 +552,21 @@
             // Update mobile header
             document.getElementById('mobileCurrentFrame').textContent = name;
             document.getElementById('mobileCurrentSpecs').textContent = specs;
+            // Update active frame name
+            document.getElementById('activeFrameName').textContent = name;
+        }
+
+        // Filter handling
+        function setFilter(filter) {
+            currentFilter = filter;
+            
+            // Update all filter buttons
+            document.querySelectorAll('[data-filter]').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.filter === filter);
+            });
+            
+            // Repopulate frames with filter
+            populateFrames();
         }
 
         // Mobile-specific touch handling
@@ -312,9 +601,22 @@
         });
 
         // Click handler for mobile tray header
-        mobileTray.querySelector('.current-frame').addEventListener('click', () => {
-            mobileTray.classList.toggle('collapsed');
-            mobileTray.classList.toggle('expanded');
+        mobileTray.querySelector('.tray-header').addEventListener('click', (e) => {
+            // Don't toggle if clicking filter buttons
+            if (!e.target.closest('.filter-toggle')) {
+                mobileTray.classList.toggle('collapsed');
+                mobileTray.classList.toggle('expanded');
+            }
+        });
+
+        // Initialize event listeners
+        document.getElementById('prevFavorite').addEventListener('click', () => navigateFavorites(-1));
+        document.getElementById('nextFavorite').addEventListener('click', () => navigateFavorites(1));
+        document.getElementById('activeFrameFavorite').addEventListener('click', toggleCurrentFavorite);
+
+        // Filter button click handlers
+        document.querySelectorAll('[data-filter]').forEach(btn => {
+            btn.addEventListener('click', () => setFilter(btn.dataset.filter));
         });
 
         // Initialize
@@ -323,6 +625,7 @@
                 console.log('FitmixWidget creation complete!');
                 populateFrames();
                 fitmixInstance.startVto('live');
+                updateFavoritesNav();
             });
         }
     </script>
