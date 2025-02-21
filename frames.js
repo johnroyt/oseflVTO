@@ -20,7 +20,7 @@ const frames = [
         "name": "OS6032",
         "color": "Gold",
         "type": "ZYL",
-        "measurements": "45-17-130",
+        "measurements": "48-17-130",
         "image": "https://evfportal.s3.amazonaws.com/FrameImages/OSELF2024/OS6032-GLD+(2024).jpg"
       },
       {
@@ -28,7 +28,7 @@ const frames = [
         "name": "OS6038",
         "color": "Navy",
         "type": "ZYL",
-        "measurements": "45-17-130",
+        "measurements": "50-17-130",
         "image": "https://evfportal.s3.amazonaws.com/FrameImages/OSELF2024/OS6038-NAV+(2024).jpg"
       },
       {
