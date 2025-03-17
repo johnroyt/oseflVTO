@@ -1,0 +1,620 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="//vto-advanced-integration-api.fittingbox.com/index.js"></script>
+    <script src="frames.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=SF+Pro+Display:wght@400;600&family=SF+Pro+Text:wght@400;500;600&display=swap');
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'SF Pro Text', -apple-system, sans-serif;
+            background: #f2f2f7;
+            overflow: hidden;
+            color: #1d1d1f;
+        }
+
+        .app-container {
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 20px;
+            background: #000000;
+            border-bottom: 1px solid #d2d2d7;
+            width: 100%;
+            z-index: 1001;
+        }
+
+        .header h1 {
+            font-family: 'SF Pro Display', sans-serif;
+            font-size: 20px;
+            font-weight: 600;
+            color: #ffffff;
+        }
+
+        .logo {
+            height: 32px;
+            width: auto;
+        }
+
+        .viewer-container {
+            flex-grow: 1;
+            position: relative;
+            background: #000;
+        }
+
+        #fitmix-container {
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Frame Card Styles */
+        .frame-card {
+            display: flex;
+            flex-direction: column;
+            border: 1px solid #d2d2d7;
+            border-radius: 12px;
+            cursor: pointer;
+            margin-bottom: 16px;
+            background: #ffffff;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+            overflow: hidden;
+            transition: box-shadow 0.2s ease, transform 0.2s ease;
+            transform: translateZ(0);
+        }
+
+        .frame-card:hover {
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            transform: translateY(-2px);
+        }
+
+        .frame-card.selected {
+            border: 2px solid #007aff;
+            box-shadow: 0 4px 12px rgba(0, 122, 255, 0.2);
+        }
+
+        .frame-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 12px;
+            background: #f5f5f7;
+            border-bottom: 1px solid #d2d2d7;
+        }
+
+        .frame-title {
+            font-family: 'SF Pro Display', sans-serif;
+            font-size: 16px;
+            font-weight: 600;
+            color: #1d1d1f;
+        }
+
+        .frame-specs {
+            font-size: 13px;
+            color: #6e6e73;
+        }
+
+        .frame-image {
+            width: 100%;
+            height: 140px;
+            object-fit: contain;
+            padding: 12px;
+        }
+
+        /* Fit Indicator */
+        .fit-indicator {
+            padding: 12px;
+        }
+
+        .static-labels {
+            display: flex;
+            justify-content: space-between;
+            font-size: 11px;
+            color: #6e6e73;
+            margin-bottom: 6px;
+        }
+
+        .indicator-track {
+            height: 6px;
+            border-radius: 3px;
+            background: #d2d2d7;
+            position: relative;
+        }
+
+        .marker {
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #007aff;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            transition: left 0.3s cubic-bezier(0.36, 0.66, 0.04, 1);
+        }
+
+        /* Mobile Tray */
+        .mobile-frame-tray {
+            display: none;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: #ffffff;
+            border-radius: 20px 20px 0 0;
+            box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.2);
+            z-index: 1000;
+            height: 85vh;
+            transition: transform 0.3s cubic-bezier(0.36, 0.66, 0.04, 1);
+        }
+
+        .mobile-frame-tray.expanded {
+            transform: translateY(0);
+        }
+
+        .mobile-frame-tray.collapsed {
+            transform: translateY(calc(85vh - 100px));
+        }
+
+        .mobile-frame-content {
+            height: calc(100% - 160px);
+            overflow-y: auto;
+            padding: 20px 16px;
+            opacity: 1;
+            transition: opacity 0.2s ease;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .mobile-frame-tray.collapsed .mobile-frame-content {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .current-frame {
+            padding: 20px 16px 16px;
+            border-bottom: 1px solid #d2d2d7;
+            position: relative;
+            background: #f5f5f7;
+        }
+
+        .current-frame::before {
+            content: '';
+            position: absolute;
+            top: 8px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 36px;
+            height: 4px;
+            background: #d2d2d7;
+            border-radius: 2px;
+        }
+
+        .current-frame:active {
+            background: #ebebeb;
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateY(calc(85vh - 100px)); }
+            50% { transform: translateY(calc(85vh - 120px)); }
+        }
+
+        .mobile-frame-tray.collapsed.initial-load {
+            animation: bounce 2s ease-in-out;
+        }
+
+        /* Desktop Tray */
+        .desktop-frame-tray {
+            display: none;
+            position: fixed;
+            top: 65px;
+            right: 0;
+            width: 340px;
+            height: calc(100vh - 65px);
+            background: #ffffff;
+            border-left: 1px solid #d2d2d7;
+            box-shadow: -4px 0 20px rgba(0, 0, 0, 0.05);
+            z-index: 1000;
+            overflow-y: auto;
+            padding: 20px;
+        }
+
+        /* Inputs & Buttons */
+        .pd-input-container {
+            padding: 16px;
+            margin: 0 -16px;
+            background: #ffffff;
+            border-bottom: 1px solid #d2d2d7;
+        }
+
+        .pd-input-container label {
+            font-size: 13px;
+            font-weight: 500;
+            color: #6e6e73;
+            display: block;
+            margin-bottom: 8px;
+        }
+
+        input[type="number"] {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #d2d2d7;
+            border-radius: 10px;
+            font-size: 15px;
+            background: #ffffff;
+            transition: border-color 0.2s ease;
+        }
+
+        input[type="number"]:focus {
+            border-color: #007aff;
+            outline: none;
+        }
+
+        button {
+            padding: 10px 16px;
+            background: #007aff;
+            color: #ffffff;
+            border: none;
+            border-radius: 10px;
+            font-size: 15px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background 0.2s ease;
+        }
+
+        button:hover {
+            background: #0066cc;
+        }
+
+        /* Validation Styles */
+        .input-error {
+            border-color: #ff3b30 !important;
+            background-color: rgba(255, 59, 48, 0.05) !important;
+        }
+
+        .input-valid {
+            border-color: #34c759 !important;
+        }
+
+        .error-message {
+            color: #ff3b30;
+            font-size: 12px;
+            margin-top: 4px;
+            animation: fadeIn 0.3s;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Media Queries */
+        @media (max-width: 767px) {
+            .mobile-frame-tray {
+                display: block;
+            }
+            .desktop-frame-tray {
+                display: none;
+            }
+            .viewer-container {
+                height: calc(100vh - 100px);
+            }
+        }
+
+        @media (min-width: 768px) {
+            .mobile-frame-tray {
+                display: none;
+            }
+            .desktop-frame-tray {
+                display: block;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <header class="header">
+            <h1>Virtual Try-On</h1>
+            <img src="https://www.championsforsight.org/static/assets/img/logo/Powered_by_OSELF-white.png" alt="Powered by OneSight EssilorLuxottica Foundation" class="logo">
+        </header>
+        
+        <main class="viewer-container">
+            <div id="fitmix-container"></div>
+        </main>
+
+        <!-- Mobile Frame Tray -->
+        <div class="mobile-frame-tray collapsed" id="mobileFrameTray">
+            <div class="current-frame">
+                <div class="frame-title" id="mobileCurrentFrame">Loading...</div>
+                <div class="frame-specs" id="mobileCurrentSpecs"></div>
+            </div>
+            <div class="pd-input-container">
+                <label for="mobilePdInput">Enter Patient PD (mm)</label>
+                <div style="display: flex; gap: 8px;">
+                    <input type="number" id="mobilePdInput" min="50" max="80" value="63" placeholder="Enter PD" style="flex: 1;">
+                    <button onclick="updateFrameSizing()" style="flex: 0 0 auto;">Apply</button>
+                </div>
+            </div>
+            <div class="mobile-frame-content" id="mobileFrameContent"></div>
+        </div>
+
+        <!-- Desktop Frame Tray -->
+        <div class="desktop-frame-tray" id="desktopFrameTray">
+            <h2 style="font-family: 'SF Pro Display', sans-serif; font-size: 20px; font-weight: 600; margin-bottom: 20px;">Available Frames</h2>
+            <div class="pd-input-container">
+                <label for="pdInput">Enter Patient PD (mm)</label>
+                <div style="display: flex; gap: 8px;">
+                    <input type="number" id="pdInput" min="50" max="80" value="63" placeholder="Enter PD" style="flex: 1;">
+                    <button onclick="updateFrameSizing()" style="flex: 0 0 auto;">Apply</button>
+                </div>
+            </div>
+            <div id="desktopFrameContent"></div>
+        </div>
+    </div>
+
+    <script>
+        // Initialize with a loading state
+let params = {
+    frame: '8053672909258',
+    popupIntegration: false
+};
+
+// Fetch configuration from our secure backend
+async function initApp() {
+    try {
+        const response = await fetch('/api/config');
+        const config = await response.json();
+        
+        // Update params with the endpoint
+        params.endpoint = config.proxyPath;
+        
+        // Initialize FitMix after getting config
+        window.fitmixInstance = FitMix.createWidget('fitmix-container', params, function() {
+            console.log('FitmixWidget creation complete!');
+            populateFrames();
+            fitmixInstance.startVto('live');
+            updateFrameSizing();
+        });
+    } catch (error) {
+        console.error('Failed to initialize application:', error);
+        document.getElementById('fitmix-container').innerHTML = 
+            '<div style="color: white; padding: 20px;">Error loading the application. Please try again later.</div>';
+    }
+}
+
+// Replace your window.onload with this
+window.onload = initApp;
+
+        function createFrameCard(frame, index) {
+            const card = document.createElement('div');
+            card.className = 'frame-card' + (index === 0 ? ' selected' : '');
+            card.onclick = () => selectFrame(frame.id, frame.name, frame.color, frame.type, frame.measurements, index);
+            
+            card.innerHTML = `
+                <div class="frame-info">
+                    <span class="frame-title">${frame.name}</span>
+                    <span class="frame-specs">${frame.measurements} | <b>${frame.color}</b></span>
+                </div>
+                <img class="frame-image" src="${frame.image}" alt="${frame.name}">
+                <div class="fit-indicator">
+                    <div class="static-labels">
+                        <span>Too Small</span>
+                        <span>Just Right</span>
+                        <span>Too Big</span>
+                    </div>
+                    <div class="indicator-track">
+                        <div class="marker"></div>
+                    </div>
+                </div>
+            `;
+            return card;
+        }
+
+        function populateFrames() {
+            const mobileContent = document.getElementById('mobileFrameContent');
+            const desktopContent = document.getElementById('desktopFrameContent');
+            mobileContent.innerHTML = '';
+            desktopContent.innerHTML = '';
+            
+            frames.forEach((frame, index) => {
+                const mobileCard = createFrameCard(frame, index);
+                const desktopCard = createFrameCard(frame, index);
+                mobileContent.appendChild(mobileCard);
+                desktopContent.appendChild(desktopCard);
+            });
+
+            if (frames.length > 0) {
+                updateCurrentFrame(frames[0].name, frames[0].color, frames[0].type, frames[0].measurements);
+            }
+        }
+
+        // Enhanced PD validation function
+        function validatePD(value) {
+            // Check if the value is a number and within acceptable medical ranges
+            const pd = parseInt(value);
+            const isPDValid = !isNaN(pd) && pd >= 50 && pd <= 80;
+            
+            // Visual feedback for validation
+            const pdInputs = [document.getElementById('pdInput'), document.getElementById('mobilePdInput')];
+            
+            pdInputs.forEach(input => {
+                if (input && input.value) {
+                    if (isPDValid) {
+                        input.classList.remove('input-error');
+                        input.classList.add('input-valid');
+                    } else {
+                        input.classList.remove('input-valid');
+                        input.classList.add('input-error');
+                    }
+                }
+            });
+            
+            return isPDValid ? pd : null;
+        }
+
+        // Error message display helper
+        function displayErrorMessage(message) {
+            // Create or update error message element
+            let errorEl = document.getElementById('validation-error');
+            if (!errorEl) {
+                errorEl = document.createElement('div');
+                errorEl.id = 'validation-error';
+                errorEl.className = 'error-message';
+                
+                // Insert after the active PD input
+                const activeInput = document.activeElement.id === 'pdInput' || document.activeElement.id === 'mobilePdInput'
+                    ? document.activeElement
+                    : document.getElementById('pdInput');
+                    
+                activeInput.parentNode.insertBefore(errorEl, activeInput.nextSibling);
+            }
+            
+            errorEl.textContent = message;
+            
+            // Auto-dismiss after 4 seconds
+            setTimeout(() => {
+                if (errorEl.parentNode) {
+                    errorEl.parentNode.removeChild(errorEl);
+                }
+            }, 4000);
+        }
+
+        // Updated frame sizing function with server-side validation
+        async function updateFrameSizing() {
+            const pdInput = document.getElementById('pdInput').value || document.getElementById('mobilePdInput').value;
+            const pd = validatePD(pdInput);
+            
+            if (!pd) {
+                displayErrorMessage('Please enter a valid PD between 50-80mm');
+                return;
+            }
+            
+            try {
+                // Call backend API for validation
+                const response = await fetch('/api/update-pd', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ pd })
+                });
+                
+                const result = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(result.error || 'Server validation failed');
+                }
+                
+                // Continue with frame sizing after server validation passes
+                updateFrameMarkersWithPD(pd);
+                
+            } catch (error) {
+                displayErrorMessage(error.message || 'Failed to update PD. Please try again.');
+                console.error('PD Update Error:', error);
+            }
+        }
+
+        // Separate the marker update logic
+        function updateFrameMarkersWithPD(pd) {
+            document.querySelectorAll('.frame-card').forEach(card => {
+                const frameData = frames.find(f => f.name === card.querySelector('.frame-title').textContent)
+                if (frameData) {
+                    const [eyeSize, bridgeWidth] = frameData.measurements.split('-').map(num => parseInt(num));
+                    const lensCenterDistance = eyeSize + bridgeWidth;
+                    const marker = card.querySelector('.marker');
+                    const maxDiff = 8;
+                    const diff = lensCenterDistance - pd;
+                    const rawPosition = 50 + (diff / maxDiff) * 50;
+                    const position = Math.max(0, Math.min(100, rawPosition));
+                    
+                    marker.style.left = `${position}%`;
+                }
+            });
+        }
+
+        function selectFrame(frameId, name, color, type, measurements, index) {
+            document.querySelectorAll('.frame-card').forEach(card => card.classList.remove('selected'));
+            document.querySelectorAll('.frame-card')[index].classList.add('selected');
+            document.querySelectorAll('.frame-card')[index + frames.length].classList.add('selected');
+
+            fitmixInstance.setFrame(frameId);
+            updateCurrentFrame(name, color, type, measurements);
+            
+            if (window.innerWidth < 768) {
+                const mobileTray = document.getElementById('mobileFrameTray');
+                mobileTray.classList.remove('expanded');
+                mobileTray.classList.add('collapsed');
+            }
+        }
+
+        function updateCurrentFrame(name, color, type, measurements) {
+            const specs = `${color} | ${type} | ${measurements}`;
+            document.getElementById('mobileCurrentFrame').textContent = name;
+            document.getElementById('mobileCurrentSpecs').textContent = specs;
+        }
+
+        const mobileTray = document.getElementById('mobileFrameTray');
+        let startY;
+
+        mobileTray.addEventListener('touchstart', (e) => {
+            startY = e.touches[0].clientY;
+        });
+
+        mobileTray.addEventListener('touchmove', (e) => {
+            if (!startY) return;
+            const currentY = e.touches[0].clientY;
+            const diff = startY - currentY;
+            
+            if (mobileTray.classList.contains('collapsed')) {
+                if (diff > 50) {
+                    mobileTray.classList.remove('collapsed');
+                    mobileTray.classList.add('expanded');
+                }
+            } else {
+                if (diff < -50) {
+                    mobileTray.classList.remove('expanded');
+                    mobileTray.classList.add('collapsed');
+                }
+            }
+        });
+
+        mobileTray.addEventListener('touchend', () => {
+            startY = null;
+        });
+
+        mobileTray.querySelector('.current-frame').addEventListener('click', () => {
+            mobileTray.classList.toggle('collapsed');
+            mobileTray.classList.toggle('expanded');
+        });
+
+        window.onload = function() {
+            window.fitmixInstance = FitMix.createWidget('fitmix-container', params, function() {
+                console.log('FitmixWidget creation complete!');
+                populateFrames();
+                fitmixInstance.startVto('live');
+                updateFrameSizing();
+            });
+        }
+        
+        window.addEventListener('load', () => {
+            const mobileTray = document.getElementById('mobileFrameTray');
+            mobileTray.classList.add('initial-load');
+            
+            // Remove the class after animation completes
+            setTimeout(() => {
+                mobileTray.classList.remove('initial-load');
+            }, 2000);
+        });
+    </script>
+</body>
+</html>
